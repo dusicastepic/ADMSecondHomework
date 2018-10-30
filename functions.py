@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from collections import defaultdict # see function compute_borough_averages
+
 # RQ1 functions
 
 def clean_dataframe(df, month):
@@ -60,8 +62,6 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
     - dictionary which contains for each borow the list of daily averages for each month
     """
     
-    from collections import defaultdict
-    
     # dictionary:
     # keys: each borough
     # value: a list containing daily average for each month for that specific borough
@@ -87,13 +87,12 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
         # dropping out other columns don't needed
         df.drop(['PULocationID', 'Zone', 'service_zone'], axis = 1, inplace = True)
 
-        # grouping by Borough (indexing by Borough) and
-        # renaming the Location in taxi trips (only to understand how it works)
+        # grouping by Borough (indexing by Borough)
+        # so we have only one column containing for each borough the total number of trips
         df = df.groupby("Borough").count()
-        df = df.rename(index=str, columns = {"LocationID": "taxi_trips"})
-
-        # for every index, add the average in the trip
+        
+        # for every index (key), compute the average and add it on the dictionary
         for key in df.index:
-            borough_averages[key].append(int(df.loc[key]["taxi_trips"]) // month_days[i])
+            borough_averages[key].append(int(df.loc[key][0]) // month_days[i])
 
     return borough_averages
