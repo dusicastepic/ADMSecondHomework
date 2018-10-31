@@ -96,3 +96,58 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
             borough_averages[key].append(int(df.loc[key][0]) // month_days[i])
 
     return borough_averages
+
+
+def passengers_NY_all_months (df_names):
+    """
+        Returns the dataframe with two colums:
+        tpep_pickup_datetime, passenger_count
+        """
+    df = pd.DataFrame()
+    
+    for i in range (len(df_names)):
+        temp = pd.read_csv(df_names[i], usecols= ['tpep_pickup_datetime', 'passenger_count'],
+                           parse_dates= ["tpep_pickup_datetime"], nrows = 1000000)
+                           
+        df = df.append(temp)
+    
+    return df
+
+
+def plot_NY_24_hours(df):
+    """
+    plot the hourly number of passengers for whole NY city
+    """
+    df.set_index("tpep_pickup_datetime",inplace=True)
+    df.groupby(df.index.hour).sum().plot(kind = 'bar')
+    df.reset_index(inplace=True)
+    return
+
+
+def time_slots(x):
+    
+    if 0 <= x < 6:
+        return '00-06'
+    elif 6 <= x < 12:
+        return '06-12'
+    elif 12 <= x < 17:
+        return '12-17'
+    elif 17 <= x < 20:
+        return '17-20'
+    else:
+        return '20-23'
+
+
+
+def time_slots_and_plot (df, color):
+    # temporary df copied by the original one df
+    temp = df.copy()
+    
+    temp.set_index("tpep_pickup_datetime",inplace=True)
+    temp=temp.groupby(temp.index.hour).sum()
+    temp.reset_index(inplace=True)
+    temp['tpep_pickup_datetime'] = temp.tpep_pickup_datetime.apply(time_slots)
+    temp = temp.groupby(temp.tpep_pickup_datetime).sum()
+    temp.plot(kind='bar',color=color)
+    
+    return
