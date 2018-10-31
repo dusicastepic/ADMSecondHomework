@@ -105,6 +105,7 @@ venv.bak/
 
 # ignore derived data
 data/
+old_data/
 
 # ignore real data
 realdata/
