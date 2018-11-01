@@ -112,6 +112,22 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
 
     return borough_averages
 
+def plot_daily_averages(daily_average_lst, months):
+    """
+    plots the daily average list
+    """
+    # plot daily_average_lst
+    f = plt.figure()
+    plt.xticks(range(1,7),months)
+    plt.ylabel("daily_average")
+    plt.xlabel("months")
+    plt.title("Daily average for each month in NYC")
+    plt.plot(range(1,7), daily_average_lst, 'o', markersize=13, color='royalblue')
+    plt.grid(color ='lightgray', linestyle = '-.')
+    f.set_figwidth(14)
+    f.set_figheight(5)
+
+    return
 
 def plot_boroug_averages(borough_averages, months):
     """
@@ -191,12 +207,20 @@ def plot_NY_24_hours(df):
     """
     
     temp = df.drop('PULocationID',axis=1)
+    
     f = plt.figure()
+    
+
     temp.set_index("tpep_pickup_datetime",inplace=True)
-    temp.groupby(temp.index.hour).sum().plot(kind = 'bar')
-    temp.reset_index(inplace=True)
-    f.set_figheight(6)
-    f.set_figwidth(12)
+    ax = temp.groupby(temp.index.hour).sum().plot(figsize=(15,6),kind='bar', color = "royalblue", zorder=3)
+    plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+    plt.setp(ax,xlabel='hours', ylabel='amount of passengers [Mln]',
+             title = 'NYC: amount of passenger per time_slots (millions) from January to June 2018')
+    # converting in million y values
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:.2f}'.format(x*1e-6) for x in vals])
+
+    plt.show()
     return
 
 
@@ -226,17 +250,31 @@ def time_slots_and_plot (df, color):
     output:
     - plot of the passengers for every hours per whole NYC
     """
-    # temporary df copied by the original one df
+    # temporary df copied by the original df
     temp = df.drop('PULocationID',axis=1)
     
+    # setting as index datetime
     temp.set_index("tpep_pickup_datetime",inplace=True)
+    # grouping by hours (0-23)
     temp=temp.groupby(temp.index.hour).sum()
+    # restoring the column 'tpep_pickup_datetime'
     temp.reset_index(inplace=True)
+    # changig every hour in the slot label correspondig
     temp['tpep_pickup_datetime'] = temp.tpep_pickup_datetime.apply(time_slots)
     temp = temp.groupby(temp.tpep_pickup_datetime).sum()
-    temp.plot(kind='bar',color=color)
     
+    # plotting the result
+    ax = temp.plot(figsize=(12,6), kind='bar',color=color, zorder=3)
+    plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+
+    plt.setp(ax,xlabel='time_slots', ylabel='amount of passengers [Mln]',
+             title = 'NYC: amount of passenger per time_slots (millions) from January to June 2018')
+
+    # converting in million y values
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:.2f}'.format(x*1e-6) for x in vals])
     
+    plt.show()
     return
 
 
@@ -267,10 +305,12 @@ def passengers_for_each_borough (df, borough_lst, taxi_zone_lookup):
         temp = temp.groupby('tpep_pickup_datetime').sum()
         
         #f = plt.figure()
-        temp.plot(figsize=(11,5),kind='bar',color=plots_colors[i])
-        plt.grid(color = 'lightgray', linestyle='-.')
+        ax = temp.plot(figsize=(11,5),kind='bar',color=plots_colors[i], zorder=3)
+        plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
         plt.xlabel("time slots")
         plt.ylabel("passengers in %s" %borough_lst[i])
         plt.title("%s" %borough_lst[i])
+    
+        plt.show()
 
     return
