@@ -206,16 +206,23 @@ def plot_NY_24_hours(df):
     plot the hourly number of passengers for whole NY city
     """
     
+    # A new temp dataframe with df without 'PULocationID' column
     temp = df.drop('PULocationID',axis=1)
     
-    f = plt.figure()
-    
-
+    # Using the 'tpep_pickup_datetime' as index and groupying by index.hour
     temp.set_index("tpep_pickup_datetime",inplace=True)
-    ax = temp.groupby(temp.index.hour).sum().plot(figsize=(15,6),kind='bar', color = "royalblue", zorder=3)
+    temp = temp.groupby(temp.index.hour).sum()
+    
+    # plotting the df
+    f = plt.figure()
+    ax = temp.plot(figsize=(15,6),kind='bar', color = "royalblue", zorder=3)
+    
+    # grids
     plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+    # setting label for x, y and the title
     plt.setp(ax,xlabel='hours', ylabel='amount of passengers [Mln]',
-             title = 'NYC: amount of passenger per time_slots (millions) from January to June 2018')
+             title = 'NYC: amount of passengers per hours (in millions) from January to June 2018')
+    
     # converting in million y values
     vals = ax.get_yticks()
     ax.set_yticklabels(['{:.2f}'.format(x*1e-6) for x in vals])
@@ -250,7 +257,7 @@ def time_slots_and_plot (df, color):
     output:
     - plot of the passengers for every hours per whole NYC
     """
-    # temporary df copied by the original df
+    # temporary df copied by the original df (without column 'PULocationID')
     temp = df.drop('PULocationID',axis=1)
     
     # setting as index datetime
@@ -259,8 +266,9 @@ def time_slots_and_plot (df, color):
     temp=temp.groupby(temp.index.hour).sum()
     # restoring the column 'tpep_pickup_datetime'
     temp.reset_index(inplace=True)
-    # changig every hour in the slot label correspondig
+    # changig every hour in 'tpep_pickuptime' in the corresponding slot_time (Using time_slots)
     temp['tpep_pickup_datetime'] = temp.tpep_pickup_datetime.apply(time_slots)
+    # groupying by time slots
     temp = temp.groupby(temp.tpep_pickup_datetime).sum()
     
     # plotting the result
@@ -268,7 +276,7 @@ def time_slots_and_plot (df, color):
     plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
 
     plt.setp(ax,xlabel='time_slots', ylabel='amount of passengers [Mln]',
-             title = 'NYC: amount of passenger per time_slots (millions) from January to June 2018')
+             title = 'NYC: amount of passengers per time_slots (in millions) from January to June 2018')
 
     # converting in million y values
     vals = ax.get_yticks()
@@ -288,29 +296,120 @@ def passengers_for_each_borough (df, borough_lst, taxi_zone_lookup):
     output:
     - borough plot for each borough
     """
+    # plots colors
     plots_colors = ['royalblue', 'orange', 'violet', 'crimson', 'darkcyan', 'coral', 'mediumseagreen']
     
+    # merge df with taxi_zone_lookup
     df = pd.merge(df,taxi_zone_lookup, how = "left", left_on="PULocationID", right_on= "LocationID")
     df.drop(['PULocationID','LocationID'],axis=1,inplace=True)
+
+    # groupby Borough and datetime
     df = df.groupby(["Borough","tpep_pickup_datetime"]).sum()
+    
+    # Now we have a dataframe grouped by boroughs
     
     # for every sub dataframe (grouped by borough)
     for i in range(len(borough_lst)):
         
-        # temp is our new sub dataframe, referred to a borough
+        # temp is our new sub dataframe, referred to the i borough in borough list
         temp = df.loc[borough_lst[i]]
+        # group them by hours
         temp = temp.groupby(temp.index.hour).sum()
+        # restore tpep_pickup_datetime (contains the average for every hour)
         temp.reset_index(inplace=True)
+        # make time slots
         temp['tpep_pickup_datetime'] = temp.tpep_pickup_datetime.apply(time_slots)
+        # groupby time_slots
         temp = temp.groupby('tpep_pickup_datetime').sum()
         
-        #f = plt.figure()
+        # make plot
+        f = plt.figure()
         ax = temp.plot(figsize=(11,5),kind='bar',color=plots_colors[i], zorder=3)
         plt.grid(color = 'lightgray', linestyle='-.', zorder = 0)
         plt.xlabel("time slots")
         plt.ylabel("passengers in %s" %borough_lst[i])
-        plt.title("%s" %borough_lst[i])
+        plt.title("amount of passengers in %s" %borough_lst[i])
     
         plt.show()
+
+    return
+
+
+def make_duration_df (df_names, taxi_zone_lookup):
+    """
+    Make the dataframe with colums 'durations' and 'Borough'
+    input:
+    - df name's list
+    - taxi_zone_lookup
+    output:
+    - a new dataframe
+    """
+    trip_duration = pd.DataFrame()
+    
+    for i, df_name in enumerate(df_names):
+        
+        df = pd.read_csv(df_name,usecols= ['tpep_pickup_datetime','tpep_dropoff_datetime', 'PULocationID'],
+                         parse_dates= ["tpep_pickup_datetime",'tpep_dropoff_datetime'])
+            
+        # merge with lookup_table to get boroughs
+        df = pd.merge(df,taxi_zone_lookup, how = "left", left_on="PULocationID", right_on= "LocationID")
+
+        #drop unused columns
+        df.drop(['PULocationID', 'LocationID', 'Zone', 'service_zone'], axis=1, inplace=True)
+
+        # make the column durations and put it into tpep_dropoff_datetime
+        df['tpep_dropoff_datetime'] = round((df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 'm'),2)
+
+        # drop out the other column tpep_pickup_datetime
+        df.drop('tpep_pickup_datetime',axis=1,inplace=True)
+        
+        # append the duration at the new df
+        trip_duration = trip_duration.append(df)
+    
+    # change the name in 'durations'
+    trip_duration.rename(columns = {"tpep_dropoff_datetime":"durations"}, inplace=True)
+    
+    # delete durations >= 0
+    trip_duration = trip_duration[trip_duration['durations']>0]
+    return trip_duration
+
+
+def plot_durations(df,zone_name, bins = 1000):
+    """
+    plotting the durations' density for df dataframe
+    input:
+    - df
+    - zone of the name (as a string)
+    - bins: n of histogram's intervals (DEFAULT: 1000)
+    """
+    
+    f = plt.figure()
+    df['durations'].plot(kind='hist',edgecolor="black", density=True, color='lightgrey',bins=bins)
+    plt.xlim(0,130)
+    plt.xlabel('minutes')
+    plt.title('distribution of trip\'s durations for %s' %zone_name)
+    f.set_figheight(7)
+    f.set_figwidth(15)
+    
+    return
+
+def plot_Boroughs_durations (df, borough_lst):
+    """
+    plot durations' density for each borow
+    input:
+    - df
+    - borough list
+    """
+    for i in range(len(borough_lst)):
+        
+        temp = df[df['Borough'] == borough_lst[i]]
+        
+        # using the function plot durations:
+        # due EWR and Staten Island have less trips, we use 100 bins instead
+        # of the default value (1000)
+        if (borough_lst[i] == 'EWR') or (borough_lst[i] == 'Staten Island'):
+            plot_durations(temp, borough_lst[i], bins=100)
+        else:
+            plot_durations(temp, borough_lst[i])
 
     return
