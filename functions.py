@@ -358,8 +358,7 @@ def make_duration_df (df_names, taxi_zone_lookup):
         df.drop(['PULocationID', 'LocationID', 'Zone', 'service_zone'], axis=1, inplace=True)
 
         # make the column durations and put it into tpep_dropoff_datetime
-        df['tpep_dropoff_datetime'] = round((df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 'm'),2)
-
+        df['tpep_dropoff_datetime'] = (df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 's')
         # drop out the other column tpep_pickup_datetime
         df.drop('tpep_pickup_datetime',axis=1,inplace=True)
         
@@ -374,7 +373,7 @@ def make_duration_df (df_names, taxi_zone_lookup):
     return trip_duration
 
 
-def plot_durations(df,zone_name, bins = 1000):
+def plot_durations(df,zone_name, bins = 3600):
     """
     plotting the durations' density for df dataframe
     input:
@@ -385,8 +384,8 @@ def plot_durations(df,zone_name, bins = 1000):
     
     f = plt.figure()
     df['durations'].plot(kind='hist',edgecolor="black", density=True, color='lightgrey',bins=bins)
-    plt.xlim(0,130)
-    plt.xlabel('minutes')
+    plt.xlim(0,6000)
+    plt.xlabel('seconds')
     plt.title('distribution of trip\'s durations for %s' %zone_name)
     f.set_figheight(7)
     f.set_figwidth(15)
