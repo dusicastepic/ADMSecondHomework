@@ -549,5 +549,60 @@ def payment_types_NYC_plot(payment_type_all,payment_type_lst):
     plt.show()
 
 
+# RQ5
+
+def duration_distance_df (df_names):
+    """
+        return a dataframe with trip duration and distances
+        input:
+        - df_names list
+        output
+        - new dataframe
+        """
+    
+    res_df=pd.DataFrame()
+    
+    for i,df_name in enumerate (df_names):
+        # load the ith dataframe, taking only the t_pickup_datetime column
+        df = pd.read_csv(df_name,usecols= ['tpep_pickup_datetime','tpep_dropoff_datetime','trip_distance'],
+                         parse_dates= ["tpep_pickup_datetime",'tpep_dropoff_datetime'])
+
+        df['trip_duration']= ((df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 's')).astype(int)
 
 
+        res_df=res_df.append(df.loc[:,['trip_duration','trip_distance']])
+
+    # filtering duration
+    res_df = res_df[(res_df['trip_duration'] > 120) & (res_df['trip_duration'] < 3600*2)]
+    # filtering distance
+    res_df= res_df[(res_df['trip_distance'] > 1.2 )&(res_df['trip_distance'] < 50)]
+    
+    return res_df
+
+def plot_duration_distance_freq (df):
+    """
+    plot duration and distance frequencies
+    input:
+    - df with trip_distance and trip_duration
+    """
+    
+    f = plt.figure()
+    ax1 = f.add_subplot(221)
+    ax2 = f.add_subplot(222)
+    
+    df['trip_duration'].plot(kind = 'kde',color='darkgreen',ax=ax1, xlim=(0,4000))
+    df['trip_duration'].plot(kind='hist',edgecolor="black", density=True, color='honeydew',bins=40,ax=ax1)
+    ax1.set_xlabel('time [s]')
+    ax1.title.set_text('trip duration frequency')
+    
+    
+    df['trip_distance'].plot(kind = 'kde',color='darkblue',ax=ax2, xlim = (0,30))
+    df['trip_distance'].plot(kind='hist',edgecolor="black", density=True, color='lavender',bins=30,ax=ax2)
+    
+    ax2.title.set_text('trip distance frequency')
+    ax2.set_xlabel('miles')
+    f.set_figheight(14)
+    f.set_figwidth(14)
+    plt.show()
+    
+    return
