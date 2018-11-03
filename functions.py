@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 from collections import defaultdict # see function compute_borough_averages
@@ -345,35 +344,47 @@ def make_duration_df (df_names, taxi_zone_lookup):
     output:
     - a new dataframe
     """
+    # creating a new empty df
     trip_duration = pd.DataFrame()
     
+    # appending rows to trip_duration df
     for i, df_name in enumerate(df_names):
         
-        df = pd.read_csv(df_name,usecols= ['tpep_pickup_datetime','tpep_dropoff_datetime', 'PULocationID'],
-                         parse_dates= ["tpep_pickup_datetime",'tpep_dropoff_datetime'])
+        # load csv file
+        df = pd.read_csv(df_name,usecols=['tpep_pickup_datetime','tpep_dropoff_datetime', 'PULocationID'],
+                         parse_dates=["tpep_pickup_datetime",'tpep_dropoff_datetime'])
             
         # merge with lookup_table to get boroughs
-        df = pd.merge(df,taxi_zone_lookup, how = "left", left_on="PULocationID", right_on= "LocationID")
+        df = pd.merge(df,taxi_zone_lookup, how="left", left_on="PULocationID", right_on="LocationID")
 
-        #drop unused columns
+        #drop out unused columns
         df.drop(['PULocationID', 'LocationID', 'Zone', 'service_zone'], axis=1, inplace=True)
 
         # make the column durations and put it into tpep_dropoff_datetime
-        df['tpep_dropoff_datetime'] = (df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 's')
+        df['tpep_dropoff_datetime'] = ((df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/np.timedelta64(1, 's')).astype(int)
+
         # drop out the other column tpep_pickup_datetime
         df.drop('tpep_pickup_datetime',axis=1,inplace=True)
-        
+
         # append the duration at the new df
         trip_duration = trip_duration.append(df)
     
-    # change the name in 'durations'
-    trip_duration.rename(columns = {"tpep_dropoff_datetime":"durations"}, inplace=True)
     
-    # delete durations >= 0
-    trip_duration = trip_duration[trip_duration['durations']>0]
+    # change the name 'tpep_dropoff_datetime' in 'durations'
+    trip_duration.rename(columns={"tpep_dropoff_datetime":"durations"}, inplace=True)
+    
+    
+    # filtering df values:
+    # keep durations in range (2 min, 1h:30m)
+    trip_duration = trip_duration[ (trip_duration['durations']>120) & (trip_duration['durations']<5400)]
+    
+
+    #return the new data_frame
+    
     return trip_duration
 
 
+# old function, not used now
 def plot_durations(df,zone_name, bins = 3600):
     """
     plotting the durations' density for df dataframe
@@ -393,6 +404,7 @@ def plot_durations(df,zone_name, bins = 3600):
     
     return
 
+# old function, not used now
 def plot_Boroughs_durations (df, borough_lst):
     """
     plot durations' density for each borow
@@ -415,17 +427,71 @@ def plot_Boroughs_durations (df, borough_lst):
     return
 
 
-def payments_per_borough(df_names,taxi_zone_lookup,borough_lst):
+def plot_frequencies (column, zone_name, bins = 30, xlim = 28, color = 'darkcyan' ):
+    """
+    Plot duration frequencies
+    input:
+    - df single attribute
+    - zone_name (string)
+    - bins (def 30) xlim (def 29) color (def 'darkcyan')
+    """
+    
+    temp = pd.DataFrame()
+    temp['values'] = column
+    
+    temp['new_col'] = pd.cut(temp['values'], bins=bins,precision=0)
+    temp = temp.groupby('new_col').count()
+    
+    x = [str(i) for i in temp.index]
+    
+    f = plt.figure()
+    ax = plt.bar(x = x, height=temp['values'], color = color)
+    plt.title('trips duration\'s frequency in %s' %zone_name)
+    plt.xticks (list(range(xlim-1)), x , rotation=90)
+    plt.xlim(-1,xlim)
+    plt.xlabel('trips_duration in seconds')
+    plt.ylabel('frequency')
+    
+    f.set_figheight(5)
+    f.set_figwidth(13)
+    
+    plt.show()
+    return
+
+def Boroughs_durations_freq (df, borough_lst):
+    """
+    for each borough plot the durations frequencies
+    using the func plot_frequencies()
+    input:
+    - df
+    - borough_lst
+    """
+    plots_colors = ['royalblue', 'orange', 'mediumseagreen', 'crimson',
+                    'darkcyan', 'coral', 'violet']
+        
+    for i in range(len(borough_lst)):
+    
+        temp = df[df['Borough'] == borough_lst[i]]
+        
+        if (borough_lst[i] == 'EWR') or (borough_lst[i] == 'Staten Island'):
+            plot_frequencies(temp['durations'], borough_lst[i],color=plots_colors[i], bins=20, xlim=21)
+        elif borough_lst[i] == 'Manhattan':
+            plot_frequencies(temp['durations'],borough_lst[i],color=plots_colors[i], bins=45, xlim=36)
+        elif (borough_lst[i] == 'Bronx') or (borough_lst[i] == 'Queens'):
+            plot_frequencies(temp['durations'],borough_lst[i],color=plots_colors[i], bins=25, xlim=26 )
+
+    return
+
+
+
+def payments_per_borough(df_names,borough_lst):
     """
     compute the contingency table for every payment type for each borough
     input:
     - list of names of csv file to open
-    - taxi_zone_lookup datraframe
     - borough_lst 
     output:
     - data frame of frequencies of each payment for every borough and the list of all possible payment types
-    - list of all values of payment types
-    - list with values of all payment types for whole NYC
     """
     payment_type=['Credit card','Cash','No charge','Dispute','Unknown','Voided trip']
 
@@ -438,7 +504,7 @@ def payments_per_borough(df_names,taxi_zone_lookup,borough_lst):
             # merging it with taxi_zone_lookup file(left-join) 
             df=pd.merge(df,taxi_zone_lookup,how='left',left_on='PULocationID',right_on='LocationID')
 
-            res.append(df.groupby(['Borough','payment_type']).count().iloc[:,0]) 
+            res.append(df.groupby(['payment_type','Borough']).count().iloc[:,0]) 
     
     #concatenating the results for all months and summing the values for each payment type
     res=pd.DataFrame(pd.concat(res,axis=1).sum(axis=1))
@@ -447,11 +513,10 @@ def payments_per_borough(df_names,taxi_zone_lookup,borough_lst):
     #change name of columns (instead of numbers(1,...,6) names of payment types)
     contingency_table.columns = [payment_type[i-1] for i in contingency_table.columns] 
     
-
-    return contingency_table,payment_type 
+    return contingency_table,payment_type
         
         
-def payment_type_per_borough_plot(contingency_table,payment_type_lst):
+def payment_type_per_borough_plot(contingency_table):
     """
     plots the payment types for each borough
     """
