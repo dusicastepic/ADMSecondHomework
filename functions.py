@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 from collections import defaultdict # see function compute_borough_averages
@@ -414,14 +415,17 @@ def plot_Boroughs_durations (df, borough_lst):
     return
 
 
-def payments_per_borough(df_names,borough_lst):
+def payments_per_borough(df_names,taxi_zone_lookup,borough_lst):
     """
     compute the contingency table for every payment type for each borough
     input:
     - list of names of csv file to open
+    - taxi_zone_lookup datraframe
     - borough_lst 
     output:
     - data frame of frequencies of each payment for every borough and the list of all possible payment types
+    - list of all values of payment types
+    - list with values of all payment types for whole NYC
     """
     payment_type=['Credit card','Cash','No charge','Dispute','Unknown','Voided trip']
 
@@ -434,7 +438,7 @@ def payments_per_borough(df_names,borough_lst):
             # merging it with taxi_zone_lookup file(left-join) 
             df=pd.merge(df,taxi_zone_lookup,how='left',left_on='PULocationID',right_on='LocationID')
 
-            res.append(df.groupby(['payment_type','Borough']).count().iloc[:,0]) 
+            res.append(df.groupby(['Borough','payment_type']).count().iloc[:,0]) 
     
     #concatenating the results for all months and summing the values for each payment type
     res=pd.DataFrame(pd.concat(res,axis=1).sum(axis=1))
@@ -443,10 +447,11 @@ def payments_per_borough(df_names,borough_lst):
     #change name of columns (instead of numbers(1,...,6) names of payment types)
     contingency_table.columns = [payment_type[i-1] for i in contingency_table.columns] 
     
-    return contingency_table,payment_type
+
+    return contingency_table,payment_type 
         
         
-def payment_type_per_borough_plot(contingency_table):
+def payment_type_per_borough_plot(contingency_table,payment_type_lst):
     """
     plots the payment types for each borough
     """
