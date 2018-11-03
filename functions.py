@@ -463,7 +463,20 @@ def payment_type_per_borough_plot(contingency_table):
         ax=sns.pointplot(x=contingency_table.columns, y=row, markersize=13,color=colors[ind])
         plt.show()
 
-
+def payment_types_NYC_plot(payment_type_all,payment_type_lst):
+    """
+    plots the payment types for all NYC
+    """
+    fig=plt.figure()
+    plt.xticks(range(1,7),payment_type_lst)
+    plt.ylabel("payment_types")
+    plt.grid(True)
+    plt.set_cmap("ocean")
+    fig.set_size_inches(9, 6)
+    for ind,val in enumerate(payment_type_all):
+        plt.plot(range(ind+1,ind+2), payment_type_all[ind:ind+1], 'd',markersize=13)
+        plt.annotate(val,xy=[ind+1.1,val])
+    plt.show()
 
 
 
