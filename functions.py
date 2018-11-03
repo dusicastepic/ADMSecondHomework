@@ -412,3 +412,59 @@ def plot_Boroughs_durations (df, borough_lst):
             plot_durations(temp, borough_lst[i])
 
     return
+
+
+def payments_per_borough(df_names,borough_lst):
+    """
+    compute the contingency table for every payment type for each borough
+    input:
+    - list of names of csv file to open
+    - borough_lst 
+    output:
+    - data frame of frequencies of each payment for every borough and the list of all possible payment types
+    """
+    payment_type=['Credit card','Cash','No charge','Dispute','Unknown','Voided trip']
+
+    res=[] #list to store parts of dataframe grouped by Borough and payment_type
+
+    for i,df_name in enumerate(df_names): #repeating it for every fail(aka month)
+            # load the ith dataframe, taking only 2 columns
+            df = pd.read_csv(df_name,usecols= ['payment_type','PULocationID'])
+            
+            # merging it with taxi_zone_lookup file(left-join) 
+            df=pd.merge(df,taxi_zone_lookup,how='left',left_on='PULocationID',right_on='LocationID')
+
+            res.append(df.groupby(['payment_type','Borough']).count().iloc[:,0]) 
+    
+    #concatenating the results for all months and summing the values for each payment type
+    res=pd.DataFrame(pd.concat(res,axis=1).sum(axis=1))
+    res.reset_index(inplace=True)
+    contingency_table=res.pivot(index='Borough', columns='payment_type', values=0).fillna(0)
+    #change name of columns (instead of numbers(1,...,6) names of payment types)
+    contingency_table.columns = [payment_type[i-1] for i in contingency_table.columns] 
+    
+    return contingency_table,payment_type
+        
+        
+def payment_type_per_borough_plot(contingency_table):
+    """
+    plots the payment types for each borough
+    """
+    colors=['r','orange','royalblue','g','violet','pink']
+    # boroughs one by one
+    for ind in range(contingency_table.shape[0]-1):
+        row=contingency_table.iloc[ind,:] 
+        fig=plt.figure()
+        plt.xticks(range(1,len(contingency_table.columns)),payment_type_lst)
+        plt.title('Payments types used in: '+row.name)
+        plt.ylabel("payment_types")
+        plt.grid(True)
+        fig.set_size_inches(9, 6)
+        ax=sns.pointplot(x=contingency_table.columns, y=row, markersize=13,color=colors[ind])
+        plt.show()
+
+
+
+
+
+
