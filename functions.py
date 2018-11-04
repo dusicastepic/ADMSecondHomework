@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency, ttest_ind, kruskal
+
+
 
 
 from collections import defaultdict # see function compute_borough_averages
@@ -605,4 +608,177 @@ def plot_duration_distance_freq (df):
     f.set_figwidth(14)
     plt.show()
     
+    return
+
+
+# CQ1
+
+def make_df_price_per_mile(df_names,taxi_zone_lookup):
+    """
+    filter csv files, return a dataframe:
+    input:
+    df_names, table_taxi
+    -output: following attributes:
+    'price per mile', 'trip_distance', 'borough'
+    
+    """
+
+    temp=pd.DataFrame() #list to store parts of dataframe grouped by Borough and payment_type
+
+    for i,df_name in enumerate(df_names): #repeating it for every fail(aka month)
+        # load the ith dataframe
+        df = pd.read_csv(df_name,usecols= ['tpep_pickup_datetime','tpep_dropoff_datetime','trip_distance','PULocationID','fare_amount'],
+                         parse_dates= ["tpep_pickup_datetime",'tpep_dropoff_datetime'])
+            
+        # making column trip duration
+        df['trip_duration']= ((df['tpep_dropoff_datetime']-df['tpep_pickup_datetime'])/ np.timedelta64(1, 's')).astype(int)
+
+        df['price_per_mile']=round(df['fare_amount']/df.trip_distance, 2)
+
+        # dropping out some col
+        df.drop(columns=['tpep_dropoff_datetime','tpep_pickup_datetime'], inplace=True)
+        
+        
+
+
+        df.drop(columns=['trip_distance','fare_amount'], inplace=True)
+
+        # merging it with taxi_zone_lookup file(left-join)
+        df=pd.merge(df,taxi_zone_lookup,how='left',left_on='PULocationID',right_on='LocationID')
+
+        df.drop(columns=['PULocationID','LocationID','Zone','service_zone'], inplace=True)
+            
+        temp = temp.append(df)
+
+    # filtering trip_duration values
+    temp = temp[(temp['trip_duration'] > 120) & (temp['trip_duration']<5200)]
+    # filtering price_per_mile
+    temp = temp[(temp['price_per_mile'] > 1.5) & (temp['price_per_mile'] < 30 )]
+    return temp
+
+
+def make_boro_dict (df, borough_lst):
+    """
+    return a dictionary with a dataframe for each borough
+    output: df_dict with following attributes:
+    'price per mile', 'trip_distance', 'borough'
+    """
+    boro_dict = {}
+
+    for i in range (len(borough_lst)):
+        boro_dict[i] = df[df['Borough'] == borough_lst[i]]
+
+    return boro_dict
+
+
+def mean_std_table (boro_dict,borough_lst, attribute):
+    """
+    make a table with means and std for each borough
+    """
+    mean_std_table = pd.DataFrame(columns= ['Borough', 'Mean', 'Std'])
+
+    for i, boro in enumerate(boro_dict.values()):
+        mean_std_table.loc[i] = [borough_lst[i], round(boro[attribute].mean(),3),
+                                 round(boro[attribute].std(),3)]
+
+    return mean_std_table
+
+def plot_price_per_mile (boro_dict, borough_lst):
+    
+    fig, axes = plt.subplots (nrows=3, ncols=2)
+    
+    plots_colors = ['royalblue', 'orange', 'violet', 'crimson', 'darkcyan', 'coral', 'mediumseagreen']
+    plt.setp(axes, xticks=np.arange(0, 15, step=1))
+    
+    for i, ax in enumerate(axes.flatten()):
+        
+        if (borough_lst[i] == 'Staten Island'):
+            boro_dict[i]['price_per_mile'].plot(kind='hist',edgecolor="black", xlim = (1,15), ax = ax,color = plots_colors[i],
+                                                density=True,bins=50, zorder = 3)
+                                                
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+    
+            ax.set_xlabel('%s - price per mile' %borough_lst[i])
+        elif(borough_lst[i] == 'EWR'):
+            boro_dict[i]['price_per_mile'].plot(kind='hist',edgecolor="black", xlim = (1,15), ax = ax,
+                                                color = plots_colors[i],
+                                                density=True,bins=100, zorder = 3)
+                                                
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+            ax.set_xlabel('%s - price per mile' %borough_lst[i])
+        else:
+            boro_dict[i]['price_per_mile'].plot(kind='hist',edgecolor="black", xlim = (1,15), ax = ax,
+                                                color = plots_colors[i],
+                                                density=True,bins=100, zorder = 3)
+                                                
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+            ax.set_xlabel('%s - price per mile' %borough_lst[i])
+
+    fig.set_figheight(14)
+    fig.set_figwidth(15)
+
+    plt.show()
+
+    return
+
+
+def color_negative_red (value):
+    
+    if value <= 0.05:
+        color = 'green'
+    else:
+        color = 'red'
+    
+    if value == 1:
+        color = 'black'
+    
+    return ('color: %s' %color)
+
+
+def p_value_table (boro_dict, borough_lst, attribute):
+    
+    p_value_table = pd.DataFrame(columns= borough_lst)
+
+    for i, bor in enumerate(boro_dict):
+        p_value_row_i = [round(ttest_ind(boro_dict[i][attribute], boro_dict[j][attribute])[1],3) for j in range(0,6)]
+        p_value_table.loc[borough_lst[i]] = p_value_row_i
+
+    return p_value_table.style.applymap(color_negative_red, subset= borough_lst)
+
+
+def plot_p1 (boro_dict, borough_lst):
+    
+    fig, axes = plt.subplots (nrows=3, ncols=2)
+    plt.setp(axes, xticks=np.arange(0, .05, step=0.005))
+    
+    plots_colors = ['royalblue', 'orange', 'violet', 'crimson', 'darkcyan', 'coral', 'mediumseagreen']
+    
+    for i, ax in enumerate(axes.flatten()):
+        
+        if (borough_lst[i] == 'Staten Island'):
+            boro_dict[i]['p1'].plot(kind='hist',edgecolor="black", xlim = (-0.0,0.05), ax = ax,
+                                    color = plots_colors[i],
+                                    density=True,bins=25, zorder = 3)
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+            ax.set_xlabel('%s - p1' %borough_lst[i])
+        
+        elif(borough_lst[i] == 'EWR'):
+            boro_dict[i]['p1'].plot(kind='hist',edgecolor="black", xlim = (-0.0,0.05), ax = ax,
+                                    color = plots_colors[i],
+                                    density=True,bins=40, zorder = 3)
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+            ax.set_xlabel('%s - p1' %borough_lst[i])
+        else:
+            boro_dict[i]['p1'].plot(kind='hist',edgecolor="black", xlim = (-.0,0.05), ax = ax,
+                                    color = plots_colors[i],
+                                    density=True,bins=100, zorder = 3)
+            ax.grid(color = 'lightgray', linestyle='-.', zorder = 0)
+            ax.set_xlabel('%s - p1' %borough_lst[i])
+                                        
+                                        
+    fig.set_figheight(14)
+    fig.set_figwidth(15)
+
+    plt.show()
+        
     return
