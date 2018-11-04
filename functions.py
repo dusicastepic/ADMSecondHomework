@@ -1,12 +1,42 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import chi2_contingency, ttest_ind, kruskal
-
+import seaborn as sns
+import time
 
 
 
 from collections import defaultdict # see function compute_borough_averages
+
+def stats(df_names):
+    
+    for i in range(len(df_names)):
+
+        df= pd.read_csv(df_names[i], parse_dates= ["tpep_pickup_datetime"])
+
+
+        print ("mese %s" %str(i+1))
+        print ("\tpayment_types     :",
+               "[1:", str(df[df["payment_type"]== 1].shape[0]) + "]", "[2:", str(df[df["payment_type"]== 2].shape[0]) + "]",
+               "[3:", str(df[df["payment_type"]== 3].shape[0]) + "]", "[4:", str(df[df["payment_type"]== 4].shape[0]) + "]",
+               "[5:", str(df[df["payment_type"]== 5].shape[0]) + "]", "[6:", str(df[df["payment_type"]== 6].shape[0]) + "]"
+              )
+
+
+
+        print("\ttotal_amount == 0 : %i" %df[df["total_amount"] == 0].shape[0])
+        print ("\tfare_amount == 0  :",df[df["fare_amount"]== 0].shape[0])
+        print("\ttrip_distance == 0:",df[df["trip_distance"]== 0].shape[0])
+
+        print("\tfare_amount == 0 and total_amount == 0 -->",
+              df[(df["total_amount"] ==0) & (df["fare_amount"]==0)].shape[0])
+
+        print("\tfare_amount == 0 or total_amount == 0 -->",
+              df[(df["fare_amount"]==0) | (df["total_amount"] ==0)].shape[0])
+
+        print("\tboth year and month different -->",
+              df[(df['tpep_pickup_datetime'].dt.year != 2018) | (df['tpep_pickup_datetime'].dt.month != i+1)].shape[0] )
+    return
 
 # RQ1 functions
 
@@ -16,7 +46,7 @@ def clean_dataframe(df, month):
     input:
     - dataframe
     - month which correspond the dataframe
-    output:
+    output:from scipy.stats import chi2_contingency, ttest_ind ,chisquare, kruskal, pearsonr
     - cleaned dataframe
     """
     
@@ -125,7 +155,7 @@ def plot_daily_averages(daily_average_lst, months):
     plt.ylabel("daily_average")
     plt.xlabel("months")
     plt.title("Daily average for each month in NYC")
-    plt.plot(range(1,7), daily_average_lst, 'o', markersize=13, color='royalblue')
+    plt.plot(range(1,7), daily_average_lst, '-o', markersize=13, color='royalblue')
     plt.grid(color ='lightgray', linestyle = '-.')
     f.set_figwidth(14)
     f.set_figheight(5)
@@ -143,7 +173,7 @@ def plot_boroug_averages(borough_averages, months):
     # Manhattan
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Manhattan'], 'o', color = 'crimson', markersize = 12)
+    plt.plot(months, borough_averages['Manhattan'], '-o', color = 'crimson', markersize = 12)
     #plt.bar(months, borough_averages['Manhattan'])
     plt.xlabel("months")
     plt.ylabel("daily_average")
@@ -153,7 +183,7 @@ def plot_boroug_averages(borough_averages, months):
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Queens'], 'o', color = 'darkcyan', markersize = 12)
+    plt.plot(months, borough_averages['Queens'], '-o', color = 'darkcyan', markersize = 12)
     #plt.bar(months, borough_averages['Manhattan'])
     plt.xlabel("months")
     plt.ylabel("daily_average")
@@ -163,20 +193,20 @@ def plot_boroug_averages(borough_averages, months):
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Brooklyn'], 'o', color = 'orange', markersize = 12, label = 'Brooklyn')
-    plt.plot(months, borough_averages['Unknown'], 'o', color = 'mediumseagreen', markersize = 12, label = 'Unknown')
+    plt.plot(months, borough_averages['Brooklyn'], '-o', color = 'orange', markersize = 12, label = 'Brooklyn')
+    #plt.plot(months, borough_averages['Unknown'], '-o', color = 'mediumseagreen', markersize = 12, label = 'Unknown')
     plt.legend()
     #plt.bar(months, borough_averages['Manhattan'])
     plt.xlabel("months")
     plt.ylabel("daily_average")
-    plt.title("Brooklyn and Unknown daily_average")
+    plt.title("Brooklyn daily_average")
     f.set_figwidth(14)
     f.set_figheight(5)
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['EWR'], 'o', color = 'violet', markersize = 12, label = 'EWR')
-    plt.plot(months, borough_averages['Staten Island'], 'o', color = 'coral', markersize = 12, label = 'Staten Island')
+    plt.plot(months, borough_averages['EWR'], '-o', color = 'violet', markersize = 12, label = 'EWR')
+    plt.plot(months, borough_averages['Staten Island'], '-o', color = 'coral', markersize = 12, label = 'Staten Island')
     plt.legend()
     #plt.bar(months, borough_averages['Manhattan'])
     plt.xlabel("months")
@@ -186,7 +216,7 @@ def plot_boroug_averages(borough_averages, months):
     f.set_figheight(5)
 
     return
-
+##RQ2
 
 def passengers_NY_all_months (df_names):
     """
@@ -336,7 +366,7 @@ def passengers_for_each_borough (df, borough_lst, taxi_zone_lookup):
         plt.show()
 
     return
-
+###RQ3
 
 def make_duration_df (df_names, taxi_zone_lookup):
     """
@@ -485,9 +515,9 @@ def Boroughs_durations_freq (df, borough_lst):
 
     return
 
+####RQ4
 
-
-def payments_per_borough(df_names,borough_lst):
+def payments_per_borough(df_names,taxi_zone_lookup,borough_lst):
     """
     compute the contingency table for every payment type for each borough
     input:
@@ -519,7 +549,7 @@ def payments_per_borough(df_names,borough_lst):
     return contingency_table,payment_type
         
         
-def payment_type_per_borough_plot(contingency_table):
+def payment_type_per_borough_plot(contingency_table,payment_type_lst):
     """
     plots the payment types for each borough
     """
@@ -552,7 +582,7 @@ def payment_types_NYC_plot(payment_type_all,payment_type_lst):
     plt.show()
 
 
-# RQ5
+#####RQ5
 
 def duration_distance_df (df_names):
     """
@@ -609,7 +639,6 @@ def plot_duration_distance_freq (df):
     plt.show()
     
     return
-
 
 # CQ1
 
