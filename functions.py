@@ -4,10 +4,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import time
 
+import json
+import folium
+import geojson
 
 
 from collections import defaultdict # see function compute_borough_averages
 
+# Function that provides (and prints) some informations about the different csv files
 def stats(df_names):
     
     for i in range(len(df_names)):
@@ -811,3 +815,134 @@ def plot_p1 (boro_dict, borough_lst):
     plt.show()
         
     return
+
+
+# CQ2
+
+def take_pickup_and_dropoff_zones(df_names, taxi_zone_lookup):
+    """
+        return the dataframe merged with taxi_zone_lookup
+        input:
+        - df_names (list of csv files)
+        - taxi_zone_lookup (path of taxi_zone_lookup)
+        output:
+        - a dataframe
+    """
+    
+    # dataframe to be load
+    res=pd.DataFrame()
+    
+    for i,df_name in enumerate(df_names): #repeating it for every fail(aka month)
+        # load the ith dataframe, taking only 2 columns
+        df = pd.read_csv(df_name,usecols= ['PULocationID', 'DOLocationID'])
+        
+        # merging it with taxi_zone_lookup file(left-join)
+        
+        df=pd.merge(df,taxi_zone_lookup,how='left',left_on='PULocationID',right_on=['LocationID'])
+            
+        res=res.append(df)
+
+    return res
+
+
+
+def Locations_counter (df, type_of_LocID):
+    """
+        it counts in df the occurrences of each LocID contained in'type_of_LocID' (df's parameter)
+        and returns them as a list. It's used for columns 'PULocationID' and 'DOLocationID'
+        input:
+        - df
+        - type_of_locID
+        output:
+        - a list with 256 values (for each LocID)
+    """
+    
+    #temp dataframe, it will take before the counters of PULocID and then DOLocID
+    occurrencies = pd.DataFrame()
+    
+    #groupying by locationID (PULocationID or DOLocationID)
+    occurrencies['LocID'] = df.groupby(type_of_LocID).count()['LocationID']
+    
+    new_lst = []
+    
+    for i in range (1,266):
+        if i in occurrencies.index:
+            new_lst.append(int(occurrencies.loc[i]))
+        else:
+            new_lst.append(0)
+
+    return new_lst
+
+
+def make_map(json_data, PU_DO_occurrencies, type_of_LocID):
+    """
+        it creates a folium map considering a PU_DO_occurrencies dataframe and the
+        type_of_LocID in input
+        input:
+        - json_data file with the map
+        - PU_DO_occurrencies: dataframe with attributes:
+        'LocID' || 'PULocID_counts' || 'DOLocID_counts'
+        - type_of_LocID requested for the map (PULocID_counts or DOLocID_counts)
+    """
+    
+    m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
+    
+    # scale for the legend (referred to max_min values of PU_DO_occurrencies[type_of_LocID]
+    threshold_scale = np.linspace(PU_DO_occurrencies[type_of_LocID].min(),
+                                  PU_DO_occurrencies[type_of_LocID].max(),
+                                  6, dtype=int).tolist()
+
+    m.choropleth(geo_data=json_data, data=PU_DO_occurrencies,
+               columns=['LocID',type_of_LocID],
+               key_on='properties.LocationID',
+               fill_color='YlOrRd', fill_opacity=0.7, line_opacity=0.2,
+               legend_name='taxi pickup density', threshold_scale=threshold_scale)
+               
+    return m
+
+
+def pickup_and_dropoff_maps(df_names, taxi_zone_lookup, json_filename):
+    """
+        creates two maps and return them into a list
+        input:
+        - df_names
+        - taxi_zone_lookup
+        - json_filename
+        output:
+        - list with two maps
+    """
+    
+    #importing json data
+    json_data = json.load(open(json_filename))
+    
+    # declaring the map list
+    maps_list = []
+    
+    # creating a new data frame and load it
+    df = pd.DataFrame()
+    df = take_pickup_and_dropoff_zones(df_names,taxi_zone_lookup)
+    
+    # loading into a list the counter for each LocationID
+    # we will put the two lists into a new dataframe
+    PU_list = []
+    DO_list = []
+    
+    PU_list = Locations_counter(df,'PULocationID')
+    DO_list = Locations_counter(df,'DOLocationID')
+    
+    # df is not needed anymore
+    del df
+    
+    # creating a new dataframe
+    # PU_DO_occurrencies will contain 3 columns:
+    # Location ID || PULocationID_counter || DOLocationID_counter
+    PU_DO_occurrencies = pd.DataFrame()
+    
+    PU_DO_occurrencies['LocID'] = list(range(1,266))
+    PU_DO_occurrencies['PULocID_counts'] = PU_list
+    PU_DO_occurrencies['DOLocID_counts'] = DO_list
+    
+    maps_list.append(make_map(json_data,PU_DO_occurrencies, 'PULocID_counts'))
+    maps_list.append(make_map(json_data,PU_DO_occurrencies, 'DOLocID_counts'))
+    
+    return maps_list
