@@ -886,7 +886,12 @@ def make_map(json_data, PU_DO_occurrencies, type_of_LocID):
     """
     
     m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
-    
+    #markers for airports 
+    m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
+    folium.Marker([40.64, -73.77], popup='John F. Kennedy International Airport').add_to(m)
+    folium.Marker([40.7769, -73.8740], popup='LaGuardia Airport').add_to(m)
+    folium.Marker([40.7587, -73.9787], popup='Upper East side',
+                  icon=folium.Icon(color='red')).add_to(m)
     # scale for the legend (referred to max_min values of PU_DO_occurrencies[type_of_LocID]
     threshold_scale = np.linspace(PU_DO_occurrencies[type_of_LocID].min(),
                                   PU_DO_occurrencies[type_of_LocID].max(),
