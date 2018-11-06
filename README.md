@@ -1,6 +1,5 @@
-# ADMSecondHomework
 # Homework 2 - How do Taxis move in NYC?
-![alt text](https://secure.i.telegraph.co.uk/multimedia/archive/03031/taxi_3031331b.jpg "Logo Title Text 1")
+![How do Taxis move in NYC](https://secure.i.telegraph.co.uk/multimedia/archive/03031/taxi_3031331b.jpg )
 
 The repository is consisted from the following files:
 1. __`ADM_HW2_Full.ipynb`__: 
