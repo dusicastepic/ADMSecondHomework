@@ -1,6 +1,9 @@
 # Homework 2 - How do Taxis move in NYC?
 ![How do Taxis move in NYC](https://secure.i.telegraph.co.uk/multimedia/archive/03031/taxi_3031331b.jpg )
 
+
+The purpose of the project was to perform an Exploratory Data Analysis and answer below-mentioned research questions on a data collected from [Yellow cabs data](http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml) (January-June 2018).
+
 The repository consists of the following files:
 1. __`ADM_HW2_Full.ipynb`__: 
 	> A Jupyter notebook which provides the solutions to all research questions. 
