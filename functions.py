@@ -127,7 +127,7 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
     
     for i in range(len(df_names)):
 
-        df = pd.read_csv(df_names[i], usecols= ['tpep_pickup_datetime', 'total_amount', 'PULocationID', ],
+        df = pd.read_csv(df_names[i], usecols= ['tpep_pickup_datetime', 'total_amount', 'PULocationID'],
                          parse_dates= ["tpep_pickup_datetime"])
 
         # dropping out the colums not needed anymore
@@ -142,6 +142,9 @@ def compute_borough_averages (df_names, taxi_zone_lookup):
         # grouping by Borough (indexing by Borough)
         # so we have only one column containing for each borough the total number of trips
         df = df.groupby("Borough").count()
+        
+        # removing unknown dataframe
+        df = df[df.index != 'Unknown']
         
         # for every index (key), compute the average and add it on the dictionary
         for key in df.index:
@@ -177,9 +180,8 @@ def plot_boroug_averages(borough_averages, months):
     # Manhattan
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Manhattan'], 'o', color = 'crimson', markersize = 12)
+    plt.plot(months, borough_averages['Manhattan'], '-o', color = 'crimson', markersize = 12)
     #plt.bar(months, borough_averages['Manhattan'])
-    plt.xticks(range(0,6),months)
     plt.xlabel("months")
     plt.ylabel("daily_average")
     plt.title("Manhattan daily_average")
@@ -188,9 +190,8 @@ def plot_boroug_averages(borough_averages, months):
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Queens'], 'o', color = 'darkcyan', markersize = 12)
+    plt.plot(months, borough_averages['Queens'], '-o', color = 'darkcyan', markersize = 12)
     #plt.bar(months, borough_averages['Manhattan'])
-    plt.xticks(range(0,6),months)
     plt.xlabel("months")
     plt.ylabel("daily_average")
     plt.title("Queens daily_average")
@@ -199,11 +200,10 @@ def plot_boroug_averages(borough_averages, months):
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['Brooklyn'], 'o', color = 'orange', markersize = 12, label = 'Brooklyn')
+    plt.plot(months, borough_averages['Brooklyn'], '-o', color = 'orange', markersize = 12, label = 'Brooklyn')
     #plt.plot(months, borough_averages['Unknown'], '-o', color = 'mediumseagreen', markersize = 12, label = 'Unknown')
     plt.legend()
     #plt.bar(months, borough_averages['Manhattan'])
-    plt.xticks(range(0,6),months)
     plt.xlabel("months")
     plt.ylabel("daily_average")
     plt.title("Brooklyn daily_average")
@@ -212,11 +212,10 @@ def plot_boroug_averages(borough_averages, months):
 
     f = plt.figure()
     plt.grid(color = 'lightgray', linestyle='-.')
-    plt.plot(months, borough_averages['EWR'], 'o', color = 'violet', markersize = 12, label = 'EWR')
-    plt.plot(months, borough_averages['Staten Island'], 'o', color = 'coral', markersize = 12, label = 'Staten Island')
+    plt.plot(months, borough_averages['EWR'], '-o', color = 'violet', markersize = 12, label = 'EWR')
+    plt.plot(months, borough_averages['Staten Island'], '-o', color = 'coral', markersize = 12, label = 'Staten Island')
     plt.legend()
     #plt.bar(months, borough_averages['Manhattan'])
-    plt.xticks(range(0,6),months)
     plt.xlabel("months")
     plt.ylabel("daily_average")
     plt.title("EWR and Staten Island daily_average")
@@ -674,9 +673,6 @@ def make_df_price_per_mile(df_names,taxi_zone_lookup):
 
         # dropping out some col
         df.drop(columns=['tpep_dropoff_datetime','tpep_pickup_datetime'], inplace=True)
-        
-        
-
 
         df.drop(columns=['trip_distance','fare_amount'], inplace=True)
 
@@ -688,7 +684,7 @@ def make_df_price_per_mile(df_names,taxi_zone_lookup):
         temp = temp.append(df)
 
     # filtering trip_duration values
-    temp = temp[(temp['trip_duration'] > 120) & (temp['trip_duration']<5200)]
+    temp = temp[(temp['trip_duration'] > 120) & (temp['trip_duration']<5400)]
     # filtering price_per_mile
     temp = temp[(temp['price_per_mile'] > 1.5) & (temp['price_per_mile'] < 30 )]
     return temp
@@ -880,8 +876,8 @@ def Locations_counter (df, type_of_LocID):
 
 def make_map(json_data, PU_DO_occurrencies, type_of_LocID):
     """
-        it creates a folium map considering a PU_DO_occurrencies dataframe and the
-        type_of_LocID in input
+        it creates a folium map considering PU_DO_occurrencies dataframe and the
+        type_of_LocID requested for the map (PULocationID or DOLocationID)
         input:
         - json_data file with the map
         - PU_DO_occurrencies: dataframe with attributes:
@@ -889,13 +885,12 @@ def make_map(json_data, PU_DO_occurrencies, type_of_LocID):
         - type_of_LocID requested for the map (PULocID_counts or DOLocID_counts)
     """
     
-    m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
-    #markers for airports 
-    m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
+    #m = folium.Map(location=[40.7128, -74.0060],control_scale=True)
+    # markers for airports
+    m = folium.Map(location=[40.7128, -74.0060],control_scale=True, zoom_start=10.5)
     folium.Marker([40.64, -73.77], popup='John F. Kennedy International Airport').add_to(m)
     folium.Marker([40.7769, -73.8740], popup='LaGuardia Airport').add_to(m)
-    folium.Marker([40.7587, -73.9787], popup='Upper East side',
-                  icon=folium.Icon(color='red')).add_to(m)
+    
     # scale for the legend (referred to max_min values of PU_DO_occurrencies[type_of_LocID]
     threshold_scale = np.linspace(PU_DO_occurrencies[type_of_LocID].min(),
                                   PU_DO_occurrencies[type_of_LocID].max(),
