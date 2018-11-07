@@ -6,15 +6,15 @@ The repository is consisted from the following files:
 	> A Jupyter notebook which provides the solutions to all research questions. 
 	
 		Exploratory Data Analysis
-			1. [RQ1]  In what period of the year Taxis are used more?  
+			1. [RQ1]: In what period of the year Taxis are used more?  
 			
-			2. [RQ2] What are the time slots with more passengers?  
+			2. [RQ2]: What are the time slots with more passengers?  
 
-			3. [RQ3] Do the all trips last the same?
+			3. [RQ3]: Do the all trips last the same?
 
-			4. [RQ4] What is the most common way of payments?  
+			4. [RQ4]: What is the most common way of payments?  
 
-			5. [RQ5] Does a long distance correlate with the duration of the trip on average?  
+			5. [RQ5]: Does a long distance correlate with the duration of the trip on average?  
 
 		Core Research Questions 
 			1. [CRQ1]: Does the fare for kilometer change across NY's borough?  
