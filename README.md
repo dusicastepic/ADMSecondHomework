@@ -10,7 +10,7 @@ The repository is consisted from the following files:
 			
 			2. [RQ2]: What are the time slots with more passengers?  
 
-			3. [RQ3]: Do the all trips last the same?
+			3. [RQ3]: Do all trips last the same?
 
 			4. [RQ4]: What is the most common way of payments?  
 
