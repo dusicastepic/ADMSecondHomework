@@ -23,8 +23,8 @@ The repository consists of the following files:
 2. __`functions.py`__:
 	> A python script which provides all the functions used in the `ADM_HW2_Full.ipynb` notebook.
 
-3. __'map_starts.html'__:
+3. __map_starts.html__:
 	> A HTML file with a map of NY zones that shows the number of trips that starts in each zone. [CRQ2] 
 	
-4. __'map_ends.html'__:
+4. __map_ends.html__:
 	> A HTML file with a map of NY zones that shows the number of trips that ends in the single zone. [CRQ2]  
