@@ -25,6 +25,7 @@ The repository consists of the following files:
 
 3. __map_starts.html__:
 	> A HTML file with a map of NY zones that shows the number of trips that starts in each zone. [CRQ2] 
-	
+	http://nbviewer.jupyter.org/github/dusicastepic/ADMSecondHomework/blob/master/map_starts.html
 4. __map_ends.html__:
 	> A HTML file with a map of NY zones that shows the number of trips that ends in the single zone. [CRQ2]  
+	http://nbviewer.jupyter.org/github/dusicastepic/ADMSecondHomework/blob/master/map_ends.html
